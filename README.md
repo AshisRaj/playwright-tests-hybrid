@@ -1,4 +1,4 @@
-# pw-tests-hybrid
+# playwright-tests-hybrid
 
 ## Table of Contents
 
