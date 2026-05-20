@@ -1,0 +1,54 @@
+import { expect, test } from '@fixtures';
+import { validateSoapResponse } from '@services';
+
+test.use({
+  soapServiceOptions: {
+    url: 'http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso',
+    log: true,
+  },
+});
+
+test(
+  'sOAP CountryInfo CapitalCity returns a non-empty string',
+  { tag: ['@smoke', '@regression'] },
+  async ({ soapService, soapData, soapSchemas }) => {
+    let result: { status: number; rawBody?: string; parsed?: string };
+
+    await test.step('Call CapitalCity operation', async () => {
+      result = await soapService.call<string>(soapData.countryInfo.capitalCity);
+    });
+
+    await test.step('Verify CapitalCity response', async () => {
+      expect(result).toBeDefined();
+      expect(result!.status).toBe(200);
+      expect(typeof result!.parsed).toBe('string');
+      expect(result!.parsed && result!.parsed.length).toBeGreaterThan(0);
+    });
+
+    await test.step('Validate CapitalCity schema', async () => {
+      await validateSoapResponse(soapSchemas.capitalCitySchema, result.parsed);
+    });
+  },
+);
+
+test(
+  'sOAP CountryInfo CountryName returns a non-empty string',
+  { tag: ['@smoke', '@regression'] },
+  async ({ soapService, soapData, soapSchemas }) => {
+    let result: { status: number; rawBody?: string; parsed?: string };
+
+    await test.step('Call CountryName operation', async () => {
+      result = await soapService.call<string>(soapData.countryInfo.countryName);
+    });
+
+    await test.step('Verify CountryName response', async () => {
+      expect(result.status).toBe(200);
+      expect(typeof result.parsed).toBe('string');
+      expect((result.parsed as string).length).toBeGreaterThan(0);
+    });
+
+    await test.step('Validate CountryName schema', async () => {
+      await validateSoapResponse(soapSchemas.countryNameSchema, result.parsed);
+    });
+  },
+);

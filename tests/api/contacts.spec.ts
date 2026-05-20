@@ -1,0 +1,64 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { expect, test } from '@fixtures';
+import { APIResponse } from '@playwright/test';
+import { validateApiResponse } from '@services';
+
+let contactId: number;
+
+test(
+  'create contact',
+  { tag: ['@smoke', '@regression'] },
+  async ({ apiService, apiData, apiSchemas }) => {
+    let response: APIResponse;
+    let body: any;
+
+    await test.step('Send create contact request', async () => {
+      response = await apiService.post('/contacts', apiData.contacts.newContact);
+    });
+
+    await test.step('Verify create contact response', async () => {
+      expect(response.status()).toBe(201);
+      body = await response.json();
+      contactId = body.id;
+    });
+
+    await test.step('Validate create contact response schema', async () => {
+      await validateApiResponse(apiSchemas.contactSchema, body);
+    });
+  },
+);
+
+test(
+  'get contacts by userId',
+  { tag: ['@smoke', '@regression'] },
+  async ({ apiService, apiData, apiSchemas }) => {
+    let response: APIResponse;
+    let contacts: any;
+
+    await test.step('Fetch contacts for user', async () => {
+      response = await apiService.get(`/contacts?userId=${apiData.contacts.userId}`);
+    });
+
+    await test.step('Verify contacts list contains the userId', async () => {
+      expect(response.status()).toBe(200);
+      contacts = await response.json();
+      expect(contacts[0].userId).toBe(apiData.contacts.userId);
+    });
+
+    await test.step('Validate contacts list schema', async () => {
+      await validateApiResponse(apiSchemas.contactsListSchema, contacts);
+    });
+  },
+);
+
+test('delete contact', { tag: ['@smoke', '@regression'] }, async ({ apiService }) => {
+  let response: APIResponse;
+
+  await test.step('Send delete contact request', async () => {
+    response = await apiService.delete(`/contacts/${contactId}`);
+  });
+
+  await test.step('Verify delete response', async () => {
+    expect(response.status()).toBe(200);
+  });
+});

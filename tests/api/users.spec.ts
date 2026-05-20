@@ -1,0 +1,81 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { expect, test } from '@fixtures';
+import { APIResponse } from '@playwright/test';
+import { validateApiResponse } from '@services';
+
+let userId: number;
+
+test(
+  'create user',
+  { tag: ['@smoke', '@regression'] },
+  async ({ apiService, apiData, apiSchemas }) => {
+    let response: APIResponse;
+    let body: any;
+
+    await test.step('Send create user request', async () => {
+      response = await apiService.post('/users', apiData.users.newUser);
+    });
+
+    await test.step('Verify create user response', async () => {
+      expect(response.status()).toBe(201);
+      body = await response.json();
+
+      userId = body.id;
+      expect(body.data.name).toBe('Ashis Raj');
+    });
+
+    await test.step('Validate create user response schema', async () => {
+      await validateApiResponse(apiSchemas.userSchema, body);
+    });
+  },
+);
+
+test('get all users', { tag: ['@smoke', '@regression'] }, async ({ apiService, apiSchemas }) => {
+  let response: APIResponse;
+  let users: any;
+
+  await test.step('Fetch all users', async () => {
+    response = await apiService.get('/users');
+  });
+
+  await test.step('Verify users list', async () => {
+    expect(response.status()).toBe(200);
+
+    users = await response.json();
+    expect(users.length).toBeGreaterThan(0);
+  });
+
+  await test.step('Validate users list schema', async () => {
+    await validateApiResponse(apiSchemas.usersListSchema, users);
+  });
+});
+
+test('get user by ID', { tag: ['@smoke', '@regression'] }, async ({ apiService, apiSchemas }) => {
+  let response: APIResponse;
+  let body: any;
+
+  await test.step('Fetch user by ID', async () => {
+    response = await apiService.get(`/users/${userId}`);
+  });
+
+  await test.step('Verify user fetch response', async () => {
+    expect(response.status()).toBe(200);
+    body = await response.json();
+  });
+
+  await test.step('Validate get user response schema', async () => {
+    await validateApiResponse(apiSchemas.userSchema, body);
+  });
+});
+
+test('delete user', { tag: ['@smoke', '@regression'] }, async ({ apiService }) => {
+  let response: APIResponse;
+
+  await test.step('Send delete user request', async () => {
+    response = await apiService.delete(`/users/${userId}`);
+  });
+
+  await test.step('Verify delete response', async () => {
+    expect(response.status()).toBe(200);
+  });
+});

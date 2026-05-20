@@ -1,0 +1,36 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { expect, test } from '@fixtures';
+import { APIResponse } from '@playwright/test';
+import { validateApiResponse } from '@services';
+
+test.use({
+  apiServiceOptions: {
+    extraHTTPHeaders: { Authorization: 'Bearer token' },
+    log: true,
+  },
+});
+
+test(
+  'health check should return OK',
+  { tag: ['@smoke', '@regression'] },
+  async ({ apiService, apiSchemas }) => {
+    let response: APIResponse;
+
+    await test.step('Call /health endpoint', async () => {
+      response = await apiService.get('/health');
+    });
+
+    let body: any;
+
+    await test.step('Verify health response', async () => {
+      expect(response.status()).toBe(200);
+      body = await response.json();
+      expect(body.status).toBe('OK');
+    });
+
+    await test.step('Validate health response schema', async () => {
+      await validateApiResponse(apiSchemas.healthSchema, body);
+    });
+  },
+);

@@ -1,0 +1,49 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { expect, test } from '@fixtures';
+import { APIResponse } from '@playwright/test';
+import { validateApiResponse } from '@services';
+
+test(
+  'create profile',
+  { tag: ['@smoke', '@regression'] },
+  async ({ apiService, apiData, apiSchemas }) => {
+    let response: APIResponse;
+    let body: any;
+
+    await test.step('Send create profile request', async () => {
+      response = await apiService.post('/profiles', apiData.profiles.newProfile);
+    });
+
+    await test.step('Verify profile creation response', async () => {
+      expect(response.status()).toBe(201);
+      body = await response.json();
+    });
+
+    await test.step('Validate profile creation schema', async () => {
+      await validateApiResponse(apiSchemas.profileSchema, body);
+    });
+  },
+);
+
+test(
+  'get profile by userId',
+  { tag: ['@smoke', '@regression'] },
+  async ({ apiService, apiData, apiSchemas }) => {
+    let response: APIResponse;
+    let profile: any;
+
+    await test.step('Fetch profile by userId', async () => {
+      response = await apiService.get(`/profiles/${apiData.profiles.userId}`);
+    });
+
+    await test.step('Verify profile details', async () => {
+      expect(response.status()).toBe(200);
+      profile = await response.json();
+      expect(profile.designation).toBe('Principal SDET');
+    });
+
+    await test.step('Validate profile details schema', async () => {
+      await validateApiResponse(apiSchemas.profileSchema, profile);
+    });
+  },
+);

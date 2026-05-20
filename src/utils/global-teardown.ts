@@ -1,0 +1,23 @@
+import { ARTIFACTS_DIR, logger } from '@utils';
+import { resolve } from 'path';
+import { rimraf } from 'rimraf';
+
+const cookiesFileName = `${process.env.USER_NAME}_cookies.json`;
+const storageStateFilePath = resolve(ARTIFACTS_DIR, `cookies/${cookiesFileName}`);
+
+/**
+ * Global Teardown – runs once after all tests.
+ * Useful for cleanup, releasing resources, or sending summary notifications.
+ */
+export default async function globalTeardown() {
+  logger.info('🧹 Global Teardown: cleaning up test environment...');
+
+  // Example: delete temp files, close DB connections, etc.
+  // If you send summary reports, you can trigger them here
+
+  // Cleanup old artifacts using glob pattern
+  await rimraf(storageStateFilePath);
+  logger.info(`🧹 Deleted files matching: ${storageStateFilePath}`);
+
+  logger.info('🏁 Global Teardown complete.');
+}

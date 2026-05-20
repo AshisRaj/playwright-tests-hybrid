@@ -1,0 +1,68 @@
+import fs from 'fs';
+import { resolve } from 'path';
+
+import { chromium, expect, FullConfig } from '@playwright/test';
+import { ARTIFACTS_DIR, logger } from '@utils';
+
+/**
+ * Global Setup - runs once before all tests.
+ * Useful for tasks like authentication, environment prep, or seeding test data.
+ */
+export default async function globalSetup(config: FullConfig) {
+  logger.info('🔧 Global Setup: initializing test environment...');
+
+  // Example: log the base URL and environment
+  const baseURL = config.projects[0].use?.baseURL;
+  logger.info(`Base URL: ${baseURL || 'not defined'}`);
+  logger.info(`Environment: ${process.env.ENV || 'dev'}`);
+
+  // Example: load or generate tokens, cookies, etc.
+  // Save to storageState or env vars if needed
+  // Setup cookies for users
+  await setUpUsersCookies()
+    .then(() => {
+      logger.info('✅ User cookies setup complete.');
+    })
+    .catch((error) => {
+      logger.error('Error during user cookies setup:', error);
+    });
+
+  logger.info('✅ Global Setup complete.');
+}
+
+const setUpUsersCookies = async () => {
+  const users = [
+    {
+      userName: process.env.USER_NAME || 'standard_user',
+      password: process.env.USER_PASSWORD || 'secret_sauce',
+    },
+  ];
+
+  const browser = await chromium.launch({
+    channel: 'chrome',
+    headless: true,
+  });
+
+  for (const user of users) {
+    const cookiesFileName = `${user.userName}_cookies.json`;
+    const storageStateFilePath = resolve(ARTIFACTS_DIR, `cookies/${cookiesFileName}`);
+    if (fs.existsSync(storageStateFilePath)) {
+      logger.info(
+        `The storage state file already exists, hence no need to overwrite - ${storageStateFilePath}`,
+      );
+    } else {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await page.goto(process.env.APP_BASE_URL!);
+      await page.getByRole('textbox', { name: 'Username' }).fill(user.userName);
+      await page.getByRole('textbox', { name: 'Password' }).fill(user.password);
+
+      await page.getByRole('button', { name: 'Login' }).click();
+
+      await expect(page.getByText('Products')).toBeVisible();
+
+      await page.context().storageState({ path: storageStateFilePath });
+      logger.info(`The storage state file has been created - ${storageStateFilePath}`);
+    }
+  }
+};

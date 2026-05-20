@@ -1,0 +1,53 @@
+import { expect, test } from '@fixtures';
+import { validateSoapResponse } from '@services';
+
+test.use({
+  soapServiceOptions: {
+    url: 'https://www.dataaccess.com/webservicesserver/NumberConversion.wso',
+    log: true,
+  },
+});
+
+test(
+  'sOAP NumberConversion NumberToWords returns a non-empty string',
+  { tag: ['@smoke', '@regression'] },
+  async ({ soapService, soapData, soapSchemas }) => {
+    let result: { status: number; rawBody?: string; parsed?: string };
+
+    await test.step('Call NumberToWords operation', async () => {
+      result = await soapService.call<string>(soapData.numberConversion.numberToWords);
+    });
+
+    await test.step('Verify NumberToWords response', async () => {
+      expect(result.status).toBe(200);
+      const parsed = result.parsed as string;
+      expect(parsed.length).toBeGreaterThan(0);
+    });
+
+    await test.step('Validate NumberToWords schema', async () => {
+      await validateSoapResponse(soapSchemas.numberToWordsSchema, result.parsed);
+    });
+  },
+);
+
+test(
+  'sOAP NumberConversion NumberToDollars returns a non-empty string',
+  { tag: ['@smoke', '@regression'] },
+  async ({ soapService, soapData, soapSchemas }) => {
+    let result: { status: number; rawBody?: string; parsed?: string };
+
+    await test.step('Call NumberToDollars operation', async () => {
+      result = await soapService.call<string>(soapData.numberConversion.numberToDollars);
+    });
+
+    await test.step('Verify NumberToDollars response', async () => {
+      expect(result.status).toBe(200);
+      const parsed = result.parsed as string;
+      expect(parsed.length).toBeGreaterThan(0);
+    });
+
+    await test.step('Validate NumberToDollars schema', async () => {
+      await validateSoapResponse(soapSchemas.numberToDollarsSchema, result.parsed);
+    });
+  },
+);
