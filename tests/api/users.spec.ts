@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect, test } from '@fixtures';
 import { APIResponse } from '@playwright/test';
-import { validateApiResponse } from '@services';
+import { validateApiResponse } from '@utils';
 
-let userId: number;
+let userId: number = 0;
 
 test(
   'create user',
@@ -19,7 +19,6 @@ test(
     await test.step('Verify create user response', async () => {
       expect(response.status()).toBe(201);
       body = await response.json();
-
       userId = body.id;
       expect(body.data.name).toBe('Ashis Raj');
     });

@@ -15,6 +15,7 @@ export interface FrameworkConfig {
   // full base URL for tests
   baseURL: string;
   APP_BASE_URL: string;
+  API_BASE_URL: string;
   // default test timeout in ms
   timeout: number;
   // expect timeout in ms

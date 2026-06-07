@@ -1,9 +1,9 @@
 {
-  "name": "playwright-e2e-framework",
+  "name": "playwright-tests-hybrid",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "start": "ts-node ./src/servers/server.ts",
+    "start": "ts-node ./src/utils/server.ts",
     "run": "tsx src/utils/test-runner.ts",
     "run:ui": "tsx src/utils/test-runner.ts --ui",
     "run:headed": "tsx src/utils/test-runner.ts --headed",
@@ -17,11 +17,13 @@
     "check": "npm run typecheck && npm run lint",
     "logs:clean": "rimraf artifacts/logs",
     "prepare": "husky",
-    "report:generate": "npx cross-env ALLURE_NO_ANALYTICS=1 allure generate --single-file artifacts/reports/allure-results -o artifacts/reports/allure-report --clean",
-    "report:open": "npx cross-env ALLURE_NO_ANALYTICS=1 allure open artifacts/reports/allure-report"
+    "report:open": "npx monocart show-report artifacts/reports/monocart-report/index.json --open"
   },
   "dependencies": {
     "@playwright/test": "^1.58.1",
+    "@apollo/client": "^3.8.0",
+    "graphql": "^16.7.1",
+    "cross-fetch": "^3.1.5",
     "axios": "^1.9.0",
     "dotenv": "^16.5.0"
   },
@@ -50,8 +52,7 @@
     "kolorist": "^1.8.0",
     "express": "^5.2.1",
     "@types/express": "^5.0.6",
-    "allure-playwright": "^3.2.1",
-    "allure-commandline": "^2.34.1",
+    "monocart-reporter": "^2.9.18",
     "typescript": "^5.8.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",

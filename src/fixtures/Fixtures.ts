@@ -1,35 +1,38 @@
-import { CheckoutDataset } from '@data';
 import type { CartPage, CheckoutPage, HomePage, InventoryPage, LoginPage } from '@pages';
 import { Page } from '@playwright/test';
-import type { ApiClient, ApiOptions, SoapClient, SoapOptions } from '@services';
+import type { ApiClient, ApiOptions, ApolloClient, SoapClient, SoapOptions } from '@utils';
 
 import {
-  calculatorSoapData,
-  contactsData,
-  countryInfoSoapData,
-  numberConversionSoapData,
-  profilesData,
-  usersData,
-} from '@data';
-import {
-  userSchema,
-  usersListSchema,
-  profileSchema,
-  contactSchema,
-  contactsListSchema,
-  healthSchema,
+  CheckoutDataset,
   calculatorSchema,
+  calculatorSoapData,
   capitalCitySchema,
+  contactSchema,
+  contactsData,
+  contactsListSchema,
+  countryInfoSoapData,
   countryNameSchema,
-  numberToWordsSchema,
+  healthSchema,
+  numberConversionSoapData,
   numberToDollarsSchema,
+  numberToWordsSchema,
+  profileSchema,
+  profilesData,
+  userSchema,
+  usersData,
+  usersListSchema,
 } from '@data';
 
 export type Fixtures = {
   // Services
   apiService: ApiClient;
-  soapService: SoapClient;
+  apolloClient: ApolloClient;
   apiServiceOptions: ApiOptions;
+  apolloClientOptions: {
+    uri?: string;
+    headers?: Record<string, string>;
+  };
+  soapService: SoapClient;
   soapServiceOptions: SoapOptions;
 
   // API test data

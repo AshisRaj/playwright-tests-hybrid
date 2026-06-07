@@ -1,6 +1,5 @@
 import { expect, test } from '@fixtures';
-import { validateSoapResponse } from '@services';
-import { logger } from '@utils';
+import { logger, validateSoapResponse } from '@utils';
 
 test(
   'sOAP Calculator Add',

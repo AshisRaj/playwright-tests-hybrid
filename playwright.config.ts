@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { defineConfig, devices, ReporterDescription } from '@playwright/test';
 import { MetadataBuilder, PROJECT_ROOT } from '@utils';
+import fs from 'fs';
+
 import path from 'path';
 import getConfig from './src/configs';
 
@@ -14,12 +16,12 @@ const cfg = getConfig();
 const reportMetaData = new MetadataBuilder()
   .addBase({
     // injected by generator
-    project: process.env.PROJECT_NAME || 'Playwright E2E Framework',
+    project: process.env.PROJECT_NAME || 'playwright-tests-hybrid',
     preset: 'hybrid',
     ci: 'github',
-    reporter: cfg.reporter,
+    reporter: 'monocart',
     language: 'ts',
-    env: cfg.envName,
+    env: process.env.ENV || 'dev',
   })
   .build();
 
@@ -31,24 +33,131 @@ const reportMetaData = new MetadataBuilder()
  * - list:     simple console reporter
  */
 
+// Define the MonocartSummary interface
+interface MonocartSummary {
+  name: string;
+  dateH: string;
+  durationH: string;
+  cwd: string;
+  outputFile: string;
+  outputDir: string;
+  system: {
+    arch: string;
+    platform: string;
+    release: string;
+    type: string;
+    version: string;
+    hostname: string;
+    node: string;
+    playwright: string;
+    testDir: string;
+    outputFile: string;
+    outputDir: string;
+  };
+  htmlPath: string;
+  jsonPath: string;
+  summaryTable: any;
+}
+
 const reporter: ReporterDescription[] = [
   [
-    './src/reporters/custom-reporter.ts',
+    `${PROJECT_ROOT}/src/utils/custom-reporter.ts`,
     {
       reportMetaData,
     },
   ],
   [
-    'allure-playwright',
+    'monocart-reporter',
     {
-      // tweak as needed
-      detail: true,
-      resultsDir: path.join(PROJECT_ROOT, 'artifacts', 'reports', 'allure-results'),
-      suiteTitle: true,
-      open: 'never',
-      environmentInfo: {
-        ...reportMetaData,
+      name: process.env.PROJECT_NAME || 'Unified-Test-Automation-Playwright',
+      outputFile: path.join(PROJECT_ROOT, 'artifacts', 'reports', 'monocart-report', 'index.html'),
+      tags: {
+        smoke: {
+          style: {
+            background: '#6F9913',
+          },
+          description: 'This is Smoke Test',
+        },
+        regression: {
+          style: {
+            background: '#c00',
+          },
+          description: 'This is Regression Test',
+        },
       },
+      copyAttachments: false,
+      clean: true,
+      trend: path.join(PROJECT_ROOT, 'artifacts', 'reports', 'monocart-report', 'index.json'),
+      // async hook after report data generated
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      onEnd: async (reportData: any, helper: any) => {
+        const monocartReportSummary: MonocartSummary = {
+          name: reportData.name,
+          dateH: reportData.dateH,
+          durationH: reportData.durationH,
+          cwd: reportData.cwd,
+          outputFile: reportData.outputFile,
+          outputDir: reportData.outputDir,
+          system: {
+            arch: reportData.system.arch,
+            platform: reportData.system.platform,
+            release: reportData.system.release,
+            type: reportData.system.type,
+            version: reportData.system.version,
+            hostname: reportData.system.hostname,
+            node: reportData.system.node,
+            playwright: reportData.system.playwright,
+            testDir: reportData.system.testDir,
+            outputFile: reportData.system.outputFile,
+            outputDir: reportData.system.outputDir,
+          },
+          htmlPath: reportData.htmlPath,
+          jsonPath: reportData.jsonPath,
+          summaryTable: reportData.summaryTable,
+        };
+
+        const globalReportPath = path.join(
+          PROJECT_ROOT,
+          'artifacts',
+          'reports',
+          'monocart-report',
+          'monocart-report-data.json',
+        );
+
+        // save reportData => global JSON
+        fs.writeFileSync(globalReportPath, JSON.stringify(monocartReportSummary, null, 2));
+      },
+      // example categories (edit to suit your project)
+      categories: [
+        {
+          name: 'UI Tests',
+          condition: (info: any) => /[\\/]tests[\\/].*ui/i.test(info.file || ''),
+        },
+        {
+          name: 'API Tests',
+          condition: (info: any) => /[\\/]tests[\\/].*api/i.test(info.file || ''),
+        },
+      ],
+      theme: 'dark',
+      // ✅ Add this charts config block
+      charts: {
+        categories: {
+          type: 'donut',
+          tooltip: {
+            show: true,
+            formatter: (params: any) => {
+              // 'params' contains details about the segment hovered
+              return `
+              <b>${params.name}</b><br/>
+              Count: ${params.value}<br/>
+              Percentage: ${params.percent}%
+            `;
+            },
+          },
+        },
+      },
+      timestamp: true,
+      // zip: { outputFile: path.join(PROJECT_ROOT, "artifacts", "reports", "monocart-report", "monocart-report.zip"), clean: true }
     },
   ] as [string, any],
 ];

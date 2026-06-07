@@ -22,8 +22,14 @@ import { Fixtures } from '@fixtures';
 import { CartPage, CheckoutPage, HomePage, InventoryPage, LoginPage } from '@pages';
 import type { Page, TestInfo } from '@playwright/test';
 import { expect as baseExpect, test as baseTest } from '@playwright/test';
-import { ApiClient, SoapClient, type ApiOptions, type SoapOptions } from '@services';
-import { ARTIFACTS_DIR } from '@utils';
+import {
+  ApiClient,
+  ApolloClient,
+  ARTIFACTS_DIR,
+  SoapClient,
+  type ApiOptions,
+  type SoapOptions,
+} from '@utils';
 import path from 'path';
 
 const COOKIES_DIR = path.join(ARTIFACTS_DIR, 'cookies');
@@ -39,6 +45,14 @@ export const test = baseTest.extend<Fixtures>({
 
   // Allow tests to optionally provide SOAP client options via `test.use({ soapServiceOptions: { ... } })`
   soapServiceOptions: async ({}, use: (opts: SoapOptions) => Promise<void>) => {
+    await use({});
+  },
+
+  // Allow tests to optionally provide Apollo client options via `test.use({ apolloClientOptions: { ... } })`
+  apolloClientOptions: async (
+    {},
+    use: (opts: { uri?: string; headers?: Record<string, string> }) => Promise<void>,
+  ) => {
     await use({});
   },
 
@@ -63,6 +77,22 @@ export const test = baseTest.extend<Fixtures>({
       pollingTimeoutMs: apiServiceOptions?.pollingTimeoutMs,
     };
     const client = new ApiClient(options, testInfo);
+    await use(client);
+    await client.dispose();
+  },
+
+  // Provide ApolloClient wrapper as a fixture that tests can use directly
+  apolloClient: async (
+    {
+      apolloClientOptions,
+    }: { apolloClientOptions: { uri?: string; headers?: Record<string, string> } },
+    use: (client: ApolloClient) => Promise<void>,
+  ) => {
+    const uri =
+      apolloClientOptions?.uri ||
+      process.env.APOLLO_GRAPHQL_ENDPOINT ||
+      'https://apollo-fullstack-tutorial.herokuapp.com/graphql';
+    const client = new ApolloClient(uri, apolloClientOptions?.headers);
     await use(client);
     await client.dispose();
   },

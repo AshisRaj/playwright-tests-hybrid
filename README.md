@@ -13,11 +13,9 @@
 
 ## Overview
 
-This project is built using Playwright and TypeScript. It is designed to provide a robust, scalable, and maintainable solution for automating end-to-end UI testing for web applications, REST APIs ans SOAP call/requests. The framework includes features for test execution, reporting, and code quality enforcement, ensuring high-quality test automation.
+This project is built using Playwright and TypeScript. It is designed to provide a robust, scalable, and maintainable solution for automating end-to-end UI testing for web applications, REST APIs and SOAP call/requests. The framework includes features for test execution, reporting, and code quality enforcement, ensuring high-quality test automation.
 
 ## Key Features/Functionalities/Capabilities
-
-![image](./framework_features.jpg)
 
 This framework is designed to accelerate the development and execution of UI tests, REST APIs ans SOAP call/requests, ensuring high test coverage and reliability for web applications.
 
@@ -47,17 +45,34 @@ npx playwright install --with-deps
 
 ## Running Tests
 
-```bash
-# Run all tests in headless mode
-`npm test` – run Playwright tests
+### Via scripts inside package.json
 
-# Run all tests in headed mode
+📝 API tests are dependent on local server start, hence start the server in a separate terminal before tests run as below.
+
+```bash
+`npm run start`
+```
+
+```bash
+# Run all tests in headless mode under default env as dev
+`npm test`
+
+# Run all tests in headed mode under default env as dev
 `npm run test:headed`
 
-# Run tests for specific environment (local, qa, staging)
-# Examples:
-# PLAYWRIGHT_ENV=qa npm test
-# PLAYWRIGHT_ENV=staging npm test
+# Run tests for specific environment (dev, qa, staging)
+`npx cross-env ENV=dev playwright test`
+`npx cross-env ENV=qa playwright test`
+`npx cross-env ENV=staging playwright test`
+```
+
+### Via Test Runner
+
+```bash
+#
+`npm run run` # npx.cmd cross-env ENV=dev playwright test --config C:\Users\DELL\Documents\Projects\GitHub\unified-test-automation-playwright\playwright.config.ts --project chromium --grep @regression --workers 1 --trace off
+
+`npm run:headed` # npx.cmd cross-env ENV=dev playwright test --config C:\Users\DELL\Documents\Projects\GitHub\unified-test-automation-playwright\playwright.config.ts --project chromium --grep @regression --headed --workers 1 --trace off
 ```
 
 ## Validating Syntax and Linting Rules
@@ -82,25 +97,77 @@ It is recommended to run Linting and syntax validation scripts locally before pu
 
 ## Project Structure and Folder/Files Description
 
-- `docs`: Contains the docs, coding guideline for Typescript.
-- `src`: Contains the src code, files and folders apart from tests.
-  - `configs`: Contains configuration files for the framework, such as environment-specific settings.
-  - `data`: Stores test data files, such as JSON or CSV files, used during test execution.
-  - `environments`: Contains environment-specific configurations, such as URLs or credentials.
-  - `fixtures`: Includes reusable test data or setup/teardown logic for tests.
-  - `pages`: Implements the Page Object Model (POM) for web pages, encapsulating page-specific navigation, elements and actions.
-  - `reporters`: Contains the custom reporter.
-  - `services`: Contains API/SOAP/DB related services and configs.
-  - `servers`: Contains lightweight server for REST APIs.
-  - `utils`: Includes helper functions, utilities, or common modules used across the framework.
-- `tests/`: Contains tests files and folders.
-- `.editorconfig`: Contains the configuration for Editor.
-- `.gitignore`: Contains the list of files and folders to be ignored by git.
-- `.prettierignore`: Contains the list of files/folders Prettier must ignore.
-- `.prettierrc`: Contains the configurations for Prettier.
-- `eslint.config.mjs`: Contains the configurations for the linting rules.
-- `package.json`: Contains the nodejs packages and dependencies list, scripts.
-- `playwright.config.ts`: Contains the playwright configurations.
-- `README.md`: Contains the documentation for the project.
-- `tsconfigs.json`: Contains the compilation configurations for TS.
-- `tests/`: Contains tests files and folders.
+playwright-tests-hybrid/
+│
+│── .github/
+│ # CI/CD workflows, PR templates, and repo-level automation configs
+│
+│── .husky/
+│ # Git hooks (pre-commit, commit-msg, pre-push)
+│
+│── .vscode/
+│ # Workspace settings & recommended extensions for consistent developer experience
+│
+│── docs/
+│ # Project documentation (coding standards, architecture, review guidelines)
+│
+│── artifacts/
+│ # Runtime-generated outputs (ignored in Git; safe for debugging & analysis)
+│ │── cookies/
+│ │ # Persisted session/auth cookies for reuse in tests
+│ │── reports/
+│ │ # Test execution reports (HTML, JSON, etc.)
+│ │── logs/
+│ │ # Execution logs for debugging and tracing
+│ │── screenshots/
+│ │ # Captured screenshots (failures or checkpoints)
+│ │── temp/
+│ │ # Files write and download during test execution
+│
+│── src/
+│ # Core reusable test framework code (no direct test specs)
+│ │── config/
+│ │ # Centralized framework-level configurations and constants
+│ │── environments/
+│ │ # Environment-specific configurations (dev, qa, staging, prod)
+│ │── fixtures/
+│ │ # Reusable test fixtures (page objects, API clients, setup contexts)
+│ │── pages/
+│ │ # Implements the Page Object Model (POM) for web pages
+│ │── utils/
+│ │ # Shared helpers, utilities, custom reporters, API/GraphQL/SOAP clients
+│
+│── tests/
+│ # Actual test specifications grouped by feature/module
+│
+│── test-data/
+│ # Externalized test data (JSON, CSV, static datasets for data-driven testing)
+│
+│── .editorconfig
+│ # Code style rules enforced across editors (indentation, spacing, encoding)
+│
+│── .gitignore
+│ # Defines files/folders excluded from version control
+│
+│── .prettierignore
+│ # Specifies files excluded from Prettier formatting
+│
+│── .prettierrc
+│ # Prettier configuration (formatting rules like quotes, semicolons, spacing)
+│
+│── README.md
+│ # Project overview, setup instructions, and usage documentation
+│
+│── eslint.config.mjs
+│ # ESLint configuration for code quality, linting, and best practices
+│
+│── package.json
+│ # Project metadata, scripts, dependencies, and tooling configuration
+│
+│── package-lock.json
+│ # Dependency lock file ensuring consistent installations across environments
+│
+│── playwright.config.ts
+│ # Playwright configuration (execution settings, browsers, reporters, retries)
+│
+└── tsconfig.json # TypeScript compiler configuration (paths, strictness, module settings)

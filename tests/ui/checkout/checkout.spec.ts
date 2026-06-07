@@ -1,5 +1,5 @@
-import { checkoutData } from '@data';
 import { expect, test } from '@fixtures';
+import { checkoutData } from 'test-data';
 
 test.describe('checkout form (valid cases)', () => {
   for (const row of checkoutData.valid) {

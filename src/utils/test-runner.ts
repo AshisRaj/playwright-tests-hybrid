@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { logger, PROJECT_ROOT, REPORTS_DIR } from '@utils';
-import { execSync, execFileSync } from 'child_process';
+import { logger, MONOCART_REPORT_DIR, PROJECT_ROOT } from '@utils';
+import { execSync } from 'child_process';
 import { Command } from 'commander';
 
 import fs from 'fs';
@@ -8,7 +8,7 @@ import fs from 'fs';
 import path, { join } from 'path';
 const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
-const DEFAULT_REPORTER = 'allure';
+const DEFAULT_REPORTER = 'monocart';
 
 // Graceful cancel on Ctrl+C / kill
 process.on('SIGINT', () => {
@@ -81,44 +81,10 @@ run(cmd);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const reporter = String(opts.reporter || DEFAULT_REPORTER).toLowerCase();
 
-const resultsDir = path.join(REPORTS_DIR, 'allure-results');
-if (fs.existsSync(resultsDir) && fs.readdirSync(resultsDir).length > 0) {
-  logger.info(
-    `💻 Running: ${NPX} allure generate --single-file ${resultsDir} -o ${path.join(
-      REPORTS_DIR,
-      'allure-report',
-    )} --clean`,
-  );
-  try {
-    execFileSync(
-      NPX,
-      [
-        'allure',
-        'generate',
-        '--single-file',
-        resultsDir,
-        '-o',
-        path.join(REPORTS_DIR, 'allure-report'),
-        '--clean',
-      ],
-      {
-        cwd: PROJECT_ROOT,
-        stdio: 'inherit',
-        env: { ...process.env, ALLURE_NO_ANALYTICS: '1' },
-      },
-    );
-    logger.info(`💻 Running: ${NPX} allure open ${path.join(REPORTS_DIR, 'allure-report')}`);
-    execFileSync(NPX, ['allure', 'open', path.join(REPORTS_DIR, 'allure-report')], {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit',
-      env: { ...process.env, ALLURE_NO_ANALYTICS: '1' },
-    });
-  } catch (err: any) {
-    logger.error(
-      `❌ Command failed: ${NPX} allure open ${path.join(REPORTS_DIR, 'allure-report')}`,
-    );
-    process.exitCode = typeof err?.status === 'number' ? err.status : 1;
-  }
+const reportFile = path.join(MONOCART_REPORT_DIR, 'index.html');
+if (fs.existsSync(reportFile)) {
+  logger.info(`📊 Opening Monocart report: ${reportFile}`);
+  run(`${NPX} monocart show-report "${reportFile}"`);
 } else {
-  logger.warn('No Allure results found!');
+  logger.warn('No Monocart report found!');
 }

@@ -5,6 +5,7 @@ const defaultConfig: FrameworkConfig = {
   envName: 'dev',
   baseURL: 'https://www.saucedemo.com/',
   APP_BASE_URL: 'https://www.saucedemo.com/',
+  API_BASE_URL: 'http://localhost:3000',
   timeout: 90000,
   expectTimeout: 10000,
   reporter: 'allure',

@@ -1,0 +1,307 @@
+import {
+  APIRequestContext,
+  APIResponse,
+  request as baseRequest,
+  expect,
+  TestInfo,
+} from '@playwright/test';
+import { logger } from '@utils';
+
+type ClientCertificate = {
+  origin: string;
+  certPath?: string;
+  keyPath?: string;
+  pfxPath?: string;
+  passphrase?: string;
+};
+
+export type ApiOptions = {
+  apiBaseURL?: string;
+  apiEndPoint?: string;
+  extraHTTPHeaders?: Record<string, string>;
+  headers?: Record<string, string>;
+  clientCertificates?: ClientCertificate[];
+  log?: boolean;
+  retryCount?: number; // Number of retries for failed requests
+  retryDelayMs?: number; // Delay between retries in ms
+  polling?: boolean; // Enable polling
+  pollingIntervalMs?: number; // Polling interval in ms
+  pollingTimeoutMs?: number; // Max time to poll in ms
+};
+
+export class ApiClient {
+  private requestContext;
+  private apiOptions: ApiOptions;
+  private testInfo: TestInfo;
+  private log: boolean;
+
+  constructor(apiOptions: ApiOptions, testInfo: TestInfo) {
+    // newContext returns a Promise<APIRequestContext> so keep the promise here
+    this.requestContext = baseRequest.newContext({
+      baseURL: apiOptions.apiEndPoint
+        ? `${apiOptions.apiBaseURL}/${apiOptions.apiEndPoint}/`
+        : apiOptions.apiBaseURL,
+      extraHTTPHeaders: apiOptions.extraHTTPHeaders,
+      clientCertificates: apiOptions.clientCertificates,
+      ignoreHTTPSErrors: false,
+    }) as Promise<APIRequestContext>;
+    this.apiOptions = apiOptions;
+    this.testInfo = testInfo;
+    this.log = apiOptions.log || false;
+  }
+
+  async get(url: string, apiOptions?: ApiOptions) {
+    return this.execute('GET', url, undefined, apiOptions);
+  }
+
+  async post(url: string, body?: unknown, apiOptions?: ApiOptions) {
+    return this.execute('POST', url, body, apiOptions);
+  }
+
+  async put(url: string, body?: unknown, apiOptions?: ApiOptions) {
+    return this.execute('PUT', url, body, apiOptions);
+  }
+
+  async patch(url: string, body?: unknown, apiOptions?: ApiOptions) {
+    return this.execute('PATCH', url, body, apiOptions);
+  }
+
+  async delete(url: string, apiOptions?: ApiOptions) {
+    return this.execute('DELETE', url, undefined, apiOptions);
+  }
+
+  async graphql(url: string, query: string, variables?: unknown, apiOptions?: ApiOptions) {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(apiOptions?.headers ?? {}),
+    };
+    return this.execute('POST', url, { query, variables }, { ...apiOptions, headers });
+  }
+
+  private async execute(
+    method: string,
+    url: string,
+    body?: unknown,
+    apiOptions?: ApiOptions,
+  ): Promise<APIResponse> {
+    // Merge options: instance defaults overridden by per-request options
+    const retryCount = apiOptions?.retryCount ?? this.apiOptions.retryCount ?? 0;
+    const retryDelayMs = apiOptions?.retryDelayMs ?? this.apiOptions.retryDelayMs ?? 500;
+    const polling = apiOptions?.polling ?? this.apiOptions.polling ?? false;
+    const pollingIntervalMs =
+      apiOptions?.pollingIntervalMs ?? this.apiOptions.pollingIntervalMs ?? 500;
+    const pollingTimeoutMs =
+      apiOptions?.pollingTimeoutMs ?? this.apiOptions.pollingTimeoutMs ?? 10000;
+    const headers = apiOptions?.headers ?? {};
+    const reqContext = await this.requestContext;
+    let attempts = 0;
+    let lastError: unknown = null;
+
+    // Helper for delay
+    const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+    // Retry logic
+    logger.info(
+      `API Request: ${method} ${url} | Retry: ${retryCount} | Polling: ${polling} | Timeout: ${pollingTimeoutMs}ms | Interval: ${pollingIntervalMs}ms`,
+    );
+
+    while (attempts <= retryCount) {
+      try {
+        if (polling) {
+          // Polling logic
+          const start = Date.now();
+          while (Date.now() - start < pollingTimeoutMs) {
+            const response = await reqContext.fetch(url, {
+              method,
+              data: body,
+              headers,
+            });
+
+            if (response.ok()) {
+              return response;
+            }
+            await delay(pollingIntervalMs);
+          }
+          throw new Error(`Polling timed out after ${pollingTimeoutMs}ms`);
+        } else {
+          // Standard request with retry
+          const response = await reqContext.fetch(url, {
+            method,
+            data: body,
+            headers,
+          });
+
+          if (response.ok()) {
+            return response;
+          } else {
+            lastError = new Error(`HTTP error: ${response.status()}`);
+          }
+        }
+      } catch (err) {
+        lastError = err;
+      }
+      attempts++;
+      if (attempts <= retryCount) {
+        await delay(retryDelayMs);
+      }
+    }
+    throw lastError || new Error('API request failed');
+  }
+
+  async dispose() {
+    const reqContext = await this.requestContext;
+    await reqContext
+      .dispose()
+      .then(() => {
+        if (this.log === true) {
+          logger.info(`API request context disposed for test: ${this.testInfo.title}`);
+        }
+      })
+      .catch((error) => {
+        logger.error(
+          `Failed to dispose API request context for test: ${this.testInfo.title}`,
+          error,
+        );
+      });
+  }
+
+  // GraphQL Helper Methods for Post Operations
+  private createPostMutation = `
+    mutation CreatePost($input: CreatePostInput!) {
+      createPost(input: $input) {
+        id
+        title
+        body
+        user {
+          id
+          name
+        }
+      }
+    }
+  `;
+
+  private getPostQuery = `
+    query GetPost($id: ID!) {
+      post(id: $id) {
+        id
+        title
+        body
+      }
+    }
+  `;
+
+  private updatePostMutation = `
+    mutation UpdatePost($id: ID!, $input: UpdatePostInput!) {
+      updatePost(id: $id, input: $input) {
+        id
+        title
+        body
+      }
+    }
+  `;
+
+  private deletePostMutation = `
+    mutation DeletePost($id: ID!) {
+      deletePost(id: $id)
+    }
+  `;
+
+  private getCountryQuery = `
+    query GetCountry($code: ID!) {
+      country(code: $code) {
+        code
+        name
+        capital
+        currency
+      }
+    }
+  `;
+
+  async createTestPost(endpoint: string, title: string, bodyText: string): Promise<string> {
+    const variables = { input: { title, body: bodyText } };
+    const response = await this.graphql(endpoint, this.createPostMutation, variables);
+    expect(response.status()).toBe(200);
+
+    const body = (await response.json()) as {
+      data?: {
+        createPost?: { id: string; title: string; body: string };
+      };
+    };
+
+    expect(body.data?.createPost).toBeDefined();
+    expect(body.data?.createPost?.title).toBe(title);
+    expect(body.data?.createPost?.body).toBe(bodyText);
+    return body.data?.createPost?.id as string;
+  }
+
+  async queryPost(
+    endpoint: string,
+    postId: string,
+  ): Promise<{
+    data?: { post?: { id: string; title: string; body: string } };
+  }> {
+    const response = await this.graphql(endpoint, this.getPostQuery, { id: postId });
+    expect(response.status()).toBe(200);
+    return response.json() as Promise<{
+      data?: { post?: { id: string; title: string; body: string } };
+    }>;
+  }
+
+  async updateTestPost(
+    endpoint: string,
+    postId: string,
+    title: string,
+    body: string,
+  ): Promise<void> {
+    const updateVariables = {
+      id: postId,
+      input: { title, body },
+    };
+    const updateResponse = await this.graphql(endpoint, this.updatePostMutation, updateVariables);
+    expect(updateResponse.status()).toBe(200);
+
+    const updateBody = (await updateResponse.json()) as {
+      data?: {
+        updatePost?: { id: string; title: string; body: string };
+      };
+    };
+    expect(updateBody.data?.updatePost).toBeDefined();
+    expect(updateBody.data?.updatePost?.title).toBe(title);
+    expect(updateBody.data?.updatePost?.body).toBe(body);
+  }
+
+  async deleteTestPost(endpoint: string, postId: string): Promise<void> {
+    const deleteResponse = await this.graphql(endpoint, this.deletePostMutation, {
+      id: postId,
+    });
+    expect(deleteResponse.status()).toBe(200);
+    const deleteBody = (await deleteResponse.json()) as {
+      data?: {
+        deletePost?: boolean;
+      };
+    };
+    expect(deleteBody.data?.deletePost).toBe(true);
+  }
+
+  async queryCountry(
+    endpoint: string,
+    code: string,
+  ): Promise<{
+    data?: {
+      country?: { code: string; name: string; capital?: string; currency?: string };
+    };
+  }> {
+    const response = await this.graphql(endpoint, this.getCountryQuery, { code });
+    expect(response.status()).toBe(200);
+
+    const body = (await response.json()) as {
+      data?: {
+        country?: { code: string; name: string; capital?: string; currency?: string };
+      };
+    };
+
+    expect(body.data).toBeDefined();
+    expect(body.data?.country).toBeDefined();
+    return body;
+  }
+}
