@@ -97,6 +97,7 @@ It is recommended to run Linting and syntax validation scripts locally before pu
 
 ## Project Structure and Folder/Files Description
 
+```text
 playwright-tests-hybrid/
 │
 │── .github/
@@ -171,3 +172,4 @@ playwright-tests-hybrid/
 │ # Playwright configuration (execution settings, browsers, reporters, retries)
 │
 └── tsconfig.json # TypeScript compiler configuration (paths, strictness, module settings)
+```
